@@ -4,16 +4,65 @@ import Link from "next/link"
 import Image from "next/image"
 import { signIn, useSession, signOut } from "next-auth/react";
 import Modal from 'react-modal';
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AiOutlinePlusCircle } from "react-icons/ai";
 import { MdOutlinePhotoCameraBack } from "react-icons/md";
 import { AiOutlineCloseSquare } from "react-icons/ai";
+import { app } from "@/firebase";
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 
 export default function Header() {
-    const { data: session } = useSession();
-    
+    const { data: session } = useSession(); 
+    const filePickerRef = useRef(null)
     const [isOpen, setIsOpen] = useState(false)
-    
+    const [selectedFile, setSelectedFile ] = useState(null)
+    const [imageFileUrl, setImageFileUrl] = useState(null)
+    const [imageFileUpLoading, setImageFileUpLoading] = useState(false)
+
+    const addImageToPost = (e) => {
+      const file = e.target.files[0]; 
+      if (file) {
+        setSelectedFile(file)
+        setImageFileUrl(URL.createObjectURL(file)); 
+        
+      }
+    }
+
+    useEffect(()=>{
+      if (selectedFile) {
+        upLoadImageToStorage();
+      }
+    },[selectedFile])
+
+   
+    async function upLoadImageToStorage  ()  {
+      setImageFileUpLoading(true)
+      const storage = getStorage(app)
+      const fileName = new Date().getTime() + '-' + selectedFile.name
+      const storageRef = ref(storage, fileName);
+      const upLoadTask = uploadBytesResumable(storageRef, selectedFile);
+      upLoadTask.on(
+        'state_changed', 
+        (snapshot)=> {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Upload is' + progress + '%done');
+        },
+        (error) => {
+          console.error(error)
+          setImageFileUpLoading(false);
+          setImageFileUrl(null);
+          setSelectedFile(null);
+        },
+        ()=> {
+          getDownloadURL(upLoadTask.snapshot.ref).then((getDownloadURL)=> {
+            setImageFileUrl(getDownloadURL);
+            setImageFileUpLoading(false)
+          })
+        }
+      )
+    } 
+
+
   return (
     <div className="shadow-sm border-b sticky top-0 z-30 p-3">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
@@ -62,12 +111,20 @@ export default function Header() {
             ariaHideApp={false}
             >
                <div className="flex flex-col items-center justify-center h-[100%]">
-                <MdOutlinePhotoCameraBack className="text-5xl text-gray-600 cursor-pointer" />
+                {
+                  selectedFile ? (
+                    <img onClick={() => setSelectedFile(null)} src={imageFileUrl} alt="Selected File" className={`w-full h-[250px] object-cover cursor-pointer ${imageFileUpLoading ? 'animate-pulse' : ''}`} />
+                  ) : (
+
+                    <MdOutlinePhotoCameraBack onClick={()=>filePickerRef.current.click()} className="text-5xl text-gray-600 cursor-pointer" />
+                  )
+                }
+                    <input hidden ref={filePickerRef} type="file" accept="image/*" onChange={addImageToPost}/>
+                    <input type="text" maxLength='150' placeholder="Please enter your caption..." className="mb-4 border-none text-center w-full outline-none"/>
+                    
+                    <button className="bg-red-600 w-full rounded-lg text-white hover:bg-red-700 p-2 disabled:bg-slate-200 disabled:cursor-not-allowed disabled:hover:bg-slate-300">Upload Post</button>
+                    <AiOutlineCloseSquare className="absolute top-2 right-2 cursor-pointer hover:text-red-600 transition duration-300 text-2xl" onClick={()=> setIsOpen(false)}/>
                </div>
-               <input type="text" maxLength='150' placeholder="Please enter your caption..." className="mb-4 border-none text-center w-full outline-none"/>
-               {/* <input type="file" /> */}
-               <button className="bg-red-600 w-full rounded-lg text-white hover:bg-red-700 p-2 disabled:bg-slate-200 disabled:cursor-not-allowed disabled:hover:bg-slate-300">Upload Post</button>
-               <AiOutlineCloseSquare className="absolute top-2 right-2 cursor-pointer hover:text-red-600 transition duration-300 text-2xl" onClick={()=> setIsOpen(false)}/>
             </Modal>
           )
         }
