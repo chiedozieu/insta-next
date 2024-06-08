@@ -10,6 +10,7 @@ import { MdOutlinePhotoCameraBack } from "react-icons/md";
 import { AiOutlineCloseSquare } from "react-icons/ai";
 import { app } from "@/firebase";
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
+import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore';
 
 export default function Header() {
     const { data: session } = useSession(); 
@@ -18,6 +19,10 @@ export default function Header() {
     const [selectedFile, setSelectedFile ] = useState(null)
     const [imageFileUrl, setImageFileUrl] = useState(null)
     const [imageFileUpLoading, setImageFileUpLoading] = useState(false)
+    const [postUploading, setPostUploading] = useState(false)
+    const [ caption, setCaption] = useState('')
+
+    const db = getFirestore(app)
 
     const addImageToPost = (e) => {
       const file = e.target.files[0]; 
@@ -35,8 +40,8 @@ export default function Header() {
     },[selectedFile])
 
    
-    async function upLoadImageToStorage  ()  {
-      setImageFileUpLoading(true)
+    async function upLoadImageToStorage () {
+      setImageFileUpLoading(true)   
       const storage = getStorage(app)
       const fileName = new Date().getTime() + '-' + selectedFile.name
       const storageRef = ref(storage, fileName);
@@ -61,7 +66,25 @@ export default function Header() {
         }
       )
     } 
-
+    async function handleSubmit () {
+      setPostUploading(true)
+      const docRef = await addDoc(collection(db, 'posts'),{
+        username: session.user.username,
+        caption: caption,
+        profileImage: session.user.image,
+        image: imageFileUrl,
+        timestamp: serverTimestamp()
+    });
+    setPostUploading(false);
+    setIsOpen(false);
+    }
+// const [fn, ln] =  'Adamma Kemu'.split(' ')
+// console.log(fn)
+// const [fn, ln] =  session.user.name.split(' ')
+// // console.log(fn)
+// console.log(ln)
+// console.log(session)
+// console.log(session.user.username)
 
   return (
     <div className="shadow-sm border-b sticky top-0 z-30 p-3">
@@ -85,7 +108,7 @@ export default function Header() {
 
             { session ? (
                 <div className="flex items-center gap-2">
-                 <AiOutlinePlusCircle className="text-2xl cursor-pointer transform hover:scale-125 transition duration-300 hover:text-success"
+                 <AiOutlinePlusCircle className="text-2xl cursor-pointer transform hover:scale-125 transition duration-300 hover:text-red-800"
                   onClick={()=> setIsOpen(true)}
                  />
                   <img
@@ -120,14 +143,27 @@ export default function Header() {
                   )
                 }
                     <input hidden ref={filePickerRef} type="file" accept="image/*" onChange={addImageToPost}/>
-                    <input type="text" maxLength='150' placeholder="Please enter your caption..." className="mb-4 border-none text-center w-full outline-none"/>
+                    <input 
+                    type="text" 
+                    maxLength='150' 
+                    placeholder="Please enter your caption..." 
+                    className="mb-4 border-none text-center w-full outline-none"
+                    onChange={(e)=> setCaption(e.target.value)} 
+                    />
                     
-                    <button className="bg-red-600 w-full rounded-lg text-white hover:bg-red-700 p-2 disabled:bg-slate-200 disabled:cursor-not-allowed disabled:hover:bg-slate-300">Upload Post</button>
+                    <button 
+                    onClick={handleSubmit}
+                    disabled={
+                      !selectedFile || caption.trim() === '' ||  postUploading || imageFileUpLoading
+                    }
+                    className="bg-red-600 w-full rounded-lg text-white hover:bg-red-700 p-2 disabled:bg-slate-200 disabled:cursor-not-allowed disabled:hover:bg-slate-300">Upload Post
+                    </button>
+
                     <AiOutlineCloseSquare className="absolute top-2 right-2 cursor-pointer hover:text-red-600 transition duration-300 text-2xl" onClick={()=> setIsOpen(false)}/>
                </div>
             </Modal>
           )
-        }
+        } 
     </div>
 
   )
