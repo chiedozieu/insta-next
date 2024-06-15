@@ -4,7 +4,7 @@ import Posts from "./Posts";
  
 export default function Feed() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 md:max-w6xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-3 md:max-w-6xl mx-auto ">
     
         {/* Post (Left) */}
         <section className="md:col-span-2">

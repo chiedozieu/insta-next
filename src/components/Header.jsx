@@ -77,6 +77,7 @@ export default function Header() {
     });
     setPostUploading(false);
     setIsOpen(false);
+    location.reload();
     }
 // const [fn, ln] =  'Adamma Kemu'.split(' ')
 // console.log(fn)
@@ -87,7 +88,7 @@ export default function Header() {
 // console.log(session.user.username)
 
   return (
-    <div className="shadow-sm border-b sticky top-0 z-30 p-3">
+    <div className="shadow-sm border-b sticky top-0 z-50 bg-white p-3">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
             <Link href='/' className="hidden lg:inline-flex">
                 <Image
